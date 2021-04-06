@@ -27,6 +27,15 @@ class Utils:
         return -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
     @staticmethod
+    def kl_loss_do_m(z_mu_clean, z_log_var_clean,
+                     m_mu_clean, m_log_var_clean):
+        return -torch.sum(1 + 0.5 * z_log_var_clean
+                          - 0.5 * (z_mu_clean.pow(2)
+                                   + z_log_var_clean.exp())) + torch.sum(0.5 * m_log_var_clean
+                                                                         - 0.5 * (m_mu_clean.pow(2)
+                                                                                  + m_log_var_clean.exp()))
+
+    @staticmethod
     def plot_loss(train_loss_avg, fig_name):
         plt.ion()
         fig = plt.figure()
@@ -44,7 +53,7 @@ class Utils:
         return x
 
     @staticmethod
-    def show_input_image(img, fig_name):
+    def save_input_image(img, fig_name):
         img = Utils.to_img(img)
         npimg = img.numpy()
         plt.imshow(np.transpose(npimg, (1, 2, 0)))
@@ -67,45 +76,4 @@ class Utils:
             plt.draw()
             plt.savefig(fig_name, dpi=220)
             plt.clf()
-            # plt.show()
-
-    @staticmethod
-    def deep_camma_generator(deep_camma, x_img, labels,
-                             batch_size,
-                             n_classes,
-                             device,
-                             fig_name,
-                             dim_M=32,
-                             dim_Z=64,
-                             do_m=0):
-        deep_camma.eval()
-
-        with torch.no_grad():
-            x_img = x_img.to(device)
-            labels = labels.to(device)
-            y_one_hot = Utils.get_one_hot_labels(labels, n_classes)
-            # sample latent vectors from the normal distribution
-            if do_m == 0:
-                latent_m = torch.zeros((x_img.size(0), dim_M)).to(device)
-            else:
-                latent_m = torch.randn(batch_size, dim_M, device=device)
-
-            latent_z = torch.randn(batch_size, dim_Z, device=device)
-
-            if torch.cuda.is_available():
-                y_one_hot = y_one_hot.float().cuda()
-            else:
-                y_one_hot = y_one_hot.float()
-
-            z = deep_camma.decoder_NN_p_Z(latent_z)
-            y = deep_camma.decoder_NN_p_Y(y_one_hot)
-            m = deep_camma.decoder_NN_p_M(latent_m)
-            x_hat = deep_camma.decoder_NN_p_merge(z, y, m)
-
-            # reconstruct images from the latent vectors
-            x_hat = x_hat.to(device)
-
-            fig, ax = plt.subplots(figsize=(5, 5))
-            Utils.show_input_image(torchvision.utils.make_grid(x_hat.data[:100], 10, 5),
-                                   fig_name=fig_name)
             # plt.show()

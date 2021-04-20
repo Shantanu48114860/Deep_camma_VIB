@@ -119,7 +119,7 @@ class Deep_Camma_Manager:
                     x_hat_do_m, z_mu_do_m, z_log_var_do_m, \
                     m_mu_do_m, m_log_var_do_m = deep_camma(x_img_do_m,
                                                            y_one_hot_do_m,
-                                                           do_m=1)
+                                                           do_m=0)
                     loss_recons_clean = recons_loss(x_hat_do_m, x_img_do_m)
                     ELBO_do_m = loss_recons_clean + variational_beta * Utils.kl_loss_do_m(z_mu_do_m,
                                                                                           z_log_var_do_m,

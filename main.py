@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # experiments.run_all_experiments_clean(hyper_parameters_MNIST, do_m)
 
     # train do_m
-    experiments.run_all_experiments_do_m(hyper_parameters_MNIST, do_m)
+    # experiments.run_all_experiments_do_m(hyper_parameters_MNIST, do_m)
 
     # clean_model_name = "Model/deep_camma_clean_17_04_2021_01_50_19.pth"
     clean_model_name = "Model/deep_camma_do_m_17_04_2021_01_50_53.pth"
@@ -68,5 +68,5 @@ if __name__ == '__main__':
     # experiments.predict(hyper_parameters_MNIST, do_m_model_name)
 
     # classify using DNN
-    # experiments.train_classifier(hyper_parameters_MNIST, do_m_model_name, do_m)
+    experiments.train_classifier(hyper_parameters_MNIST, do_m_model_name, do_m)
 

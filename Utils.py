@@ -36,6 +36,17 @@ class Utils:
                                                                                   + m_log_var_clean.exp()))
 
     @staticmethod
+    def get_num_correct(preds, labels):
+        return preds.argmax(dim=1).eq(labels).sum().item()
+
+    @staticmethod
+    def reparametrize(mu, logvar):
+        std = logvar.mul(0.5).exp_()
+        eps = torch.empty_like(std).normal_()
+
+        return mu + eps * std
+
+    @staticmethod
     def plot_loss(train_loss_avg, fig_name):
         plt.ion()
         fig = plt.figure()

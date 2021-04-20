@@ -1,10 +1,12 @@
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision.utils
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from Deep_camma_vib import Deep_Camma
+from Deep_camma_vib import Deep_Camma, Classifier
 from Utils import Utils
 
 
@@ -61,6 +63,7 @@ class Deep_Camma_Manager:
                                   deep_camma_loss='{:05.3f}'.format(running_loss / train_size),
                                   samples_trained='{:05.3f}'.format(train_size))
                     t.update()
+
         torch.save(deep_camma.state_dict(), model_save_path)
         print("Training completed..")
 
@@ -116,13 +119,13 @@ class Deep_Camma_Manager:
                     x_hat_do_m, z_mu_do_m, z_log_var_do_m, \
                     m_mu_do_m, m_log_var_do_m = deep_camma(x_img_do_m,
                                                            y_one_hot_do_m,
-                                                           do_m=0)
+                                                           do_m=1)
                     loss_recons_clean = recons_loss(x_hat_do_m, x_img_do_m)
                     ELBO_do_m = loss_recons_clean + variational_beta * Utils.kl_loss_do_m(z_mu_do_m,
                                                                                           z_log_var_do_m,
                                                                                           m_mu_do_m,
                                                                                           m_log_var_do_m)
-                    loss = ELBO_clean + ELBO_do_m
+                    loss = 0.5 * ELBO_clean + 0.5 * ELBO_do_m
 
                     optimizer.zero_grad()
                     loss.backward()
@@ -140,6 +143,7 @@ class Deep_Camma_Manager:
         print("Training completed..")
 
     def evaluate(self, test_parameters, m=0):
+        print("Evaluate")
         test_dataset = test_parameters["test_dataset"]
         shuffle = test_parameters["shuffle"]
         original_file_name = test_parameters["original_file_name"]
@@ -255,3 +259,112 @@ class Deep_Camma_Manager:
             Utils.save_input_image(torchvision.utils.make_grid(x_hat.data[:100], 10, 5),
                                    fig_name=fig_name)
             # plt.show()
+
+    def train_classifier(self, train_parameters):
+
+        num_epochs = train_parameters["num_epochs"]
+        learning_rate = train_parameters["learning_rate"]
+        weight_decay = train_parameters["weight_decay"]
+        train_set_size = train_parameters["train_set_size"]
+        train_dataset_clean = train_parameters["train_dataset_clean"]
+        train_dataset_do_m = train_parameters["train_dataset_do_m"]
+        shuffle = train_parameters["shuffle"]
+        deep_camma_save_path = train_parameters["deep_camma_save_path"]
+        classifier_save_path = train_parameters["classifier_save_path"]
+
+        deep_camma = Deep_Camma()
+        deep_camma = deep_camma.to(self.device)
+        deep_camma.load_state_dict(torch.load(deep_camma_save_path))
+
+        classifier = Classifier()
+        classifier = classifier.to(self.device)
+        optimizer = torch.optim.Adam(params=classifier.parameters(),
+                                     lr=learning_rate,
+                                     weight_decay=weight_decay)
+
+        merged_train_dataset = torch.utils.data.ConcatDataset([train_dataset_clean, train_dataset_do_m])
+        data_loader = DataLoader(merged_train_dataset,
+                                 batch_size=self.batch_size,
+                                 shuffle=shuffle)
+
+        for epoch in range(num_epochs):
+            running_loss = 0.0
+            train_size = 0.0
+            running_correct = 0.0
+
+            with tqdm(total=len(data_loader)) as t:
+                for x_img, y in data_loader:
+                    x_img = x_img.to(self.device)
+                    y = y.to(self.device)
+                    y_one_hot = Utils.get_one_hot_labels(y, self.n_classes)
+                    x_hat, z_mu, z_log_var, m_mu, m_log_var = deep_camma(x_img, y_one_hot, do_m=1)
+                    latent_z = Utils.reparametrize(z_mu, z_log_var).to(self.device)
+                    y_hat = classifier(latent_z)
+                    loss = F.cross_entropy(y_hat, y)
+
+                    optimizer.zero_grad()
+                    loss.backward()
+
+                    optimizer.step()
+
+                    running_loss += loss.item()
+                    running_correct += Utils.get_num_correct(y_hat, y)
+
+                    train_size += x_img.size(0)
+                    t.set_postfix(epoch='{:0}'.format(epoch + 1),
+                                  classifier_loss='{:05.3f}'.format(running_loss / train_size),
+                                  classifier_accuracy='{:05.3f}'.format(running_correct / train_size),
+                                  samples_trained='{:0}'.format(train_size))
+                    t.update()
+
+        torch.save(classifier.state_dict(), classifier_save_path)
+        print("Training completed..")
+
+    def predict(self, test_parameters, m):
+        test_dataset = test_parameters["test_dataset"]
+        shuffle = test_parameters["shuffle"]
+        model_save_path = test_parameters["model_save_path"]
+
+        deep_camma = Deep_Camma()
+        deep_camma = deep_camma.to(self.device)
+        deep_camma.load_state_dict(torch.load(model_save_path))
+        deep_camma.eval()
+
+        test_data_loader = DataLoader(test_dataset,
+                                      batch_size=1,
+                                      shuffle=shuffle)
+
+        recons_loss = nn.BCELoss(reduction="sum")
+        running_loss = 0.0
+        test_size = 0.0
+        correct = []
+        for x_img, label in test_data_loader:
+            with torch.no_grad():
+                test_size += 1
+                x_img = x_img.to(self.device)
+                label = label.to(self.device)
+                activation_tensor = torch.from_numpy(np.array(
+                    self.get_activations(x_img,
+                                         deep_camma, recons_loss,
+                                         label, m)))
+                softmax = nn.Softmax(dim=0)
+                op = softmax(activation_tensor)
+                correct.append(op.argmax().eq(label).item())
+
+        correct_estimate = np.count_nonzero(np.array(correct))
+        print(correct_estimate / test_size)
+
+    def get_activations(self, x_img, deep_camma, recons_loss, label, m):
+        class_val = torch.empty(label.size(0), dtype=torch.float)
+        activations = []
+        for y_c in range(10):
+            class_val.fill_(y_c)
+            y_one_hot = Utils.get_one_hot_labels(class_val.to(torch.int64), self.n_classes)
+            x_hat, z_mu, z_log_var, m_mu, m_log_var = deep_camma(x_img, y_one_hot, do_m=m)
+            p_theta = recons_loss(x_hat,
+                                  x_img).to(self.device)
+            activation_val = p_theta - Utils.kl_loss_clean(z_mu, z_log_var) + \
+                             torch.log2(torch.tensor(1 / 10))
+            activations.append(activation_val.item())
+        activation_tensor = torch.from_numpy(np.array(activations))
+        return activation_tensor

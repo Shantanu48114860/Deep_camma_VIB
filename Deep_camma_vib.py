@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from Utils import Utils
+
 
 class Encoder_NN_q_M(nn.Module):
     def __init__(self, in_channel=1, out_channel=64, lin_dims=500, dim_M=32):
@@ -157,10 +159,8 @@ class Deep_Camma(nn.Module):
             return mu
 
     def forward(self, x, y_one_hot, do_m):
-        if torch.cuda.is_available():
-            y_one_hot = y_one_hot.float().cuda()
-        else:
-            y_one_hot = y_one_hot.float()
+        device = Utils.get_device()
+        y_one_hot = y_one_hot.float()
 
         if do_m == 0:
             m_mu = torch.zeros((x.size(0), self.dim_M))
@@ -170,6 +170,7 @@ class Deep_Camma(nn.Module):
             m_mu, m_logvar = self.encoder_NN_q_M(x)
             latent_m = self.reparametrize(m_mu, m_logvar)
 
+        latent_m = latent_m.to(device)
         z_mu, z_logvar = self.encoder_NN_q_Z(x, y_one_hot, latent_m)
         latent_z = self.reparametrize(z_mu, z_logvar)
 
@@ -179,3 +180,14 @@ class Deep_Camma(nn.Module):
         x_hat = self.decoder_NN_p_merge(z, y, m)
 
         return x_hat, z_mu, z_logvar, m_mu, m_logvar
+
+
+class Classifier(nn.Module):
+    def __init__(self, input_channel=64, out_channel=10):
+        super(Classifier, self).__init__()
+        self.fc1 = nn.Linear(in_features=input_channel, out_features=out_channel)
+
+    def forward(self, x):
+        return self.fc1(x)
+
+

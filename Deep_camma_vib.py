@@ -179,7 +179,7 @@ class Deep_Camma(nn.Module):
         m = self.decoder_NN_p_M(latent_m)
         x_hat = self.decoder_NN_p_merge(z, y, m)
 
-        return x_hat, z_mu, z_logvar, m_mu, m_logvar
+        return x_hat, z_mu, z_logvar, latent_z, m_mu, m_logvar, latent_m
 
 
 class Classifier(nn.Module):

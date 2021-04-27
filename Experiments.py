@@ -6,7 +6,7 @@ from data_loader import Data_Loader
 
 
 class Experiments:
-    def run_all_experiments_clean(self, hyper_parameters, do_m):
+    def run_all_experiments_clean(self, hyper_parameters):
         device = Utils.get_device()
         print("Device: {0}".format(device))
         img_transform_manipulated = None
@@ -53,7 +53,7 @@ class Experiments:
             "deep_camma_generated_img_file_name": hyper_parameters["deep_camma_generated_img_file_name_clean"],
             "model_save_path": hyper_parameters["model_save_path_clean"]
         }
-        deep_camma_manager.evaluate(test_parameters, m=0)
+        deep_camma_manager.evaluate(test_parameters, do_m=0)
 
     def run_all_experiments_do_m(self, hyper_parameters, do_m):
         device = Utils.get_device()
@@ -106,7 +106,7 @@ class Experiments:
         deep_camma_manager = Deep_Camma_Manager(device,
                                                 hyper_parameters["n_classes"],
                                                 hyper_parameters["batch_size"])
-        deep_camma_manager.train_clean_manipulated(train_parameters)
+        deep_camma_manager.train_manipulated(train_parameters)
 
         test_parameters = {
             "test_dataset": test_dataset_do_m,
@@ -116,7 +116,7 @@ class Experiments:
             "deep_camma_generated_img_file_name": hyper_parameters["deep_camma_generated_img_file_name_do_m"],
             "model_save_path": hyper_parameters["model_save_path_do_m"]
         }
-        deep_camma_manager.evaluate(test_parameters, m=1)
+        deep_camma_manager.evaluate(test_parameters, do_m=0)
 
     def run_disentangle_experiments_do_m(self, hyper_parameters, do_m,
                                          clean_model_name,
@@ -164,7 +164,7 @@ class Experiments:
         deep_camma_manager = Deep_Camma_Manager(device,
                                                 hyper_parameters["n_classes"],
                                                 hyper_parameters["batch_size"])
-        deep_camma_manager.evaluate(test_parameters, m=0)
+        deep_camma_manager.evaluate(test_parameters, do_m=0)
 
     def train_classifier(self, hyper_parameters, do_m_model_name, do_m):
         device = Utils.get_device()

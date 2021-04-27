@@ -24,16 +24,17 @@ class Utils:
 
     @staticmethod
     def kl_loss_clean(mu, log_var):
-        return -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        return torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
 
     @staticmethod
     def kl_loss_do_m(z_mu_clean, z_log_var_clean,
                      m_mu_clean, m_log_var_clean):
-        return -torch.sum(1 + 0.5 * z_log_var_clean
-                          - 0.5 * (z_mu_clean.pow(2)
-                                   + z_log_var_clean.exp())) + torch.sum(0.5 * m_log_var_clean
-                                                                         - 0.5 * (m_mu_clean.pow(2)
-                                                                                  + m_log_var_clean.exp()))
+        z_kl = torch.mean(-0.5 * torch.sum(1 + z_log_var_clean - z_mu_clean.pow(2) - z_log_var_clean.exp(),
+                                           dim=1), dim=0)
+        m_kl = torch.mean(-0.5 * torch.sum(1 + m_log_var_clean - m_mu_clean.pow(2) - m_log_var_clean.exp(),
+                                           dim=1), dim=0)
+
+        return z_kl + m_kl
 
     @staticmethod
     def get_num_correct(preds, labels):
@@ -66,7 +67,7 @@ class Utils:
     @staticmethod
     def save_input_image(img, fig_name):
         img = Utils.to_img(img)
-        npimg = img.numpy()
+        npimg = img.cpu().numpy()
         plt.imshow(np.transpose(npimg, (1, 2, 0)))
         plt.draw()
         plt.savefig(fig_name, dpi=220)
@@ -79,7 +80,7 @@ class Utils:
             x_img = images.to(device)
             labels = labels.to(device)
             y_one_hot = Utils.get_one_hot_labels(labels, n_classes)
-            images, _, _, _, _ = deep_camma(x_img, y_one_hot, "clean")
+            images, _, _, _, _, _, _ = deep_camma(x_img, y_one_hot, do_m=0)
             images = images.cpu()
             images = Utils.to_img(images)
             np_imagegrid = torchvision.utils.make_grid(images[1:50], 10, 5).numpy()

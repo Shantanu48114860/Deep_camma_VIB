@@ -1,5 +1,8 @@
+import torch
 import torchvision.transforms as transforms
+from torch.utils.data.dataloader import DataLoader
 
+from Deep_Camma_Manager_predict import Deep_Camma_Manager_Predict
 from Deep_camma_Manager import Deep_Camma_Manager
 from Utils import Utils
 from data_loader import Data_Loader
@@ -232,6 +235,7 @@ class Experiments:
 
     def predict(self, hyper_parameters, do_m_model_name, do_m=1):
         device = Utils.get_device()
+        print("Device: {0}".format(device))
         img_transform_clean = transforms.Compose([
             transforms.ToTensor()
         ])
@@ -257,7 +261,13 @@ class Experiments:
             "model_save_path": do_m_model_name
         }
 
-        deep_camma_manager = Deep_Camma_Manager(device,
-                                                hyper_parameters["n_classes"],
-                                                hyper_parameters["batch_size"])
-        deep_camma_manager.predict(test_parameters, m=do_m)
+        self.test_data_loader = DataLoader(test_dataset_clean,
+                                           batch_size=128,
+                                           shuffle=True)
+
+        deep_camma_manager = Deep_Camma_Manager_Predict(n_classes=10,
+                                                        batch_size=128,
+                                                        test_parameters=test_parameters,
+                                                        m=1)
+        probs_output = deep_camma_manager(x=self.test_data_loader)
+        print(probs_output.size())

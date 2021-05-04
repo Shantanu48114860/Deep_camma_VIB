@@ -19,12 +19,20 @@ class Utils:
         return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     @staticmethod
+    def get_num_correct(preds, labels):
+        return preds.argmax(dim=1).eq(labels).sum().item()
+
+    @staticmethod
     def get_one_hot_labels(labels, n_classes):
         return F.one_hot(labels, n_classes)
 
     @staticmethod
     def kl_loss_clean(mu, log_var):
         return torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+
+    @staticmethod
+    def kl_loss_clean_predict(mu, log_var):
+        return -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1)
 
     @staticmethod
     def kl_loss_do_m(z_mu_clean, z_log_var_clean,

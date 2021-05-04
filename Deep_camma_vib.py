@@ -172,6 +172,7 @@ class Deep_Camma(nn.Module):
 
         latent_m = latent_m.to(device)
         z_mu, z_logvar = self.encoder_NN_q_Z(x, y_one_hot, latent_m)
+
         latent_z = self.reparametrize(z_mu, z_logvar)
 
         z = self.decoder_NN_p_Z(latent_z)
@@ -189,5 +190,3 @@ class Classifier(nn.Module):
 
     def forward(self, x):
         return self.fc1(x)
-
-

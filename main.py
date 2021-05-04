@@ -8,7 +8,7 @@ if __name__ == '__main__':
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
     print("Current day: ", dt_string)
-    num_epochs = 35
+    num_epochs = 15
 
     hyper_parameters_MNIST = {
         # "num_epochs": 75,
@@ -68,7 +68,9 @@ if __name__ == '__main__':
     #                                              deep_camma_generated_img_file_name_disentangle)
 
     # predict
-    hyper_parameters_MNIST
+    # do_m_model_name = "Model/do_m_vertical_shift_0.25/deep_camma_do_m_27_04_2021_08_09_54_epochs_35.pth"
+    do_m_model_name = "Model/deep_camma_do_m_27_04_2021_22_23_32_epochs_15.pth"
+    experiments.predict(hyper_parameters_MNIST, do_m_model_name)
 
     # classify using DNN
     # experiments.train_classifier(hyper_parameters_MNIST, do_m_model_name, do_m)

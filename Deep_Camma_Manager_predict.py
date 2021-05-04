@@ -71,15 +71,14 @@ class Deep_Camma_Manager_Predict:
         probs = []
         count = 0
         with tqdm(total=len(x)) as t:
-            for x_img, label in self.test_data_loader:
+            for x_img, label in x:
                 with torch.no_grad():
                     test_size += x_img.size(0)
                     x_img = x_img.to(self.device)
                     label = label.to(self.device)
                     activation_tensor = torch.from_numpy(np.array(
                         self.get_activations(x_img,
-                                             self.deep_camma, recons_loss,
-                                             label, self.do_m)))
+                                             self.deep_camma, self.do_m)))
                     preds = F.softmax(activation_tensor, dim=1)
                     probs.append(preds)
                     # print(op)
@@ -97,9 +96,9 @@ class Deep_Camma_Manager_Predict:
         probs_output = torch.cat(probs, dim=0)
         return probs_output
 
-    def get_activations(self, x_img, deep_camma, recons_loss, label, m):
-        class_val = torch.empty(label.size(0), dtype=torch.float)
-        activations = torch.zeros((label.size(0), 1))
+    def get_activations(self, x_img, deep_camma, m):
+        class_val = torch.empty(x_img.size(0), dtype=torch.float)
+        activations = torch.zeros((x_img.size(0), 1))
         for y_c in range(10):
             class_val.fill_(y_c)
             # print(class_val.size())

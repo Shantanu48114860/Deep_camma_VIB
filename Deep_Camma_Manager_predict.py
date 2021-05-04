@@ -70,7 +70,7 @@ class Deep_Camma_Manager_Predict:
         correct = []
         probs = []
         count = 0
-        with tqdm(total=len(self.test_data_loader)) as t:
+        with tqdm(total=len(x)) as t:
             for x_img, label in self.test_data_loader:
                 with torch.no_grad():
                     test_size += x_img.size(0)
@@ -90,7 +90,7 @@ class Deep_Camma_Manager_Predict:
                                   test_size='{:05.3f}'.format(test_size),
                                   accuracy='{:0}'.format(total_correct / test_size))
                     t.update()
-                    
+
         # correct_estimate = np.count_nonzero(np.array(correct))
         print("Total correct: {0}".format(total_correct))
         print("Accuracy: {0}".format(total_correct / test_size))

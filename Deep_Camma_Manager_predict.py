@@ -16,8 +16,6 @@ class Deep_Camma_Manager_Predict:
         self.n_classes = n_classes
         self.batch_size = batch_size
 
-        test_dataset = test_parameters["test_dataset"]
-        shuffle = test_parameters["shuffle"]
         model_save_path = test_parameters["model_save_path"]
         print(model_save_path)
 
@@ -26,76 +24,25 @@ class Deep_Camma_Manager_Predict:
         self.deep_camma = self.deep_camma.to(self.device)
         self.deep_camma.eval()
         self.do_m = m
-        self.test_data_loader = DataLoader(test_dataset,
-                                           batch_size=128,
-                                           shuffle=shuffle)
-
-    # def __call__(self, x):
-    #     recons_loss = nn.BCELoss(reduction="sum")
-    #     running_loss = 0.0
-    #     test_size = 0.0
-    #     total_correct = 0.0
-    #     correct = []
-    #     with tqdm(total=len(self.test_data_loader)) as t:
-    #         for x_img in self.x:
-    #             with torch.no_grad():
-    #                 test_size += x_img.size(0)
-    #                 x_img = x_img.to(self.device)
-    #                 label = label.to(self.device)
-    #                 activation_tensor = torch.from_numpy(np.array(
-    #                     self.get_activations(x_img,
-    #                                          self.deep_camma, recons_loss,
-    #                                          label, self.do_m)))
-    #                 softmax = nn.Softmax(dim=0)
-    #                 preds = softmax(activation_tensor)
-    #                 # print(op)
-    #                 # print(label)
-    #                 # print(op.argmax())
-    #                 total_correct += Utils.get_num_correct(preds.cpu(), label.cpu())
-    #                 t.set_postfix(total_correct='{:05.3f}'.format(total_correct),
-    #                               test_size='{:05.3f}'.format(test_size),
-    #                               accuracy='{:0}'.format(total_correct / test_size))
-    #                 t.update()
-    #
-    #     # correct_estimate = np.count_nonzero(np.array(correct))
-    #     print("Total correct: {0}".format(total_correct))
-    #     print("Accuracy: {0}".format(total_correct / test_size))
-    #     # return .....
 
     def __call__(self, x):
-        recons_loss = nn.BCELoss(reduction="sum")
-        running_loss = 0.0
-        test_size = 0.0
-        total_correct = 0.0
-        correct = []
-        probs = []
-        count = 0
-        with tqdm(total=len(x)) as t:
-            for x_img, label in x:
-                with torch.no_grad():
-                    test_size += x_img.size(0)
-                    x_img = x_img.to(self.device)
-                    label = label.to(self.device)
-                    activation_tensor = torch.from_numpy(np.array(
-                        self.get_activations(x_img,
-                                             self.deep_camma, self.do_m)))
-                    preds = F.softmax(activation_tensor, dim=1)
-                    probs.append(preds)
-                    # print(op)
-                    # print(label)
-                    # print(op.argmax())
-                    total_correct += Utils.get_num_correct(preds.cpu(), label.cpu())
-                    t.set_postfix(total_correct='{:05.3f}'.format(total_correct),
-                                  test_size='{:05.3f}'.format(test_size),
-                                  accuracy='{:0}'.format(total_correct / test_size))
-                    t.update()
+        if len(x.shape) != 4:
+            x = x.unsqueeze(0)
+            
+        with torch.no_grad():
+            x = x.to(self.device)
+            activation_tensor = torch.from_numpy(np.array(
+                self.get_activations(x, self.deep_camma, self.do_m)))
+            probs = F.softmax(activation_tensor, dim=1)
+            
+        return probs
 
-        # correct_estimate = np.count_nonzero(np.array(correct))
-        print("Total correct: {0}".format(total_correct))
-        print("Accuracy: {0}".format(total_correct / test_size))
-        probs_output = torch.cat(probs, dim=0)
-        return probs_output
-
+    def cuda(self):
+        self.deep_camma = self.deep_camma.to("cuda")
+    
+    def eval(self):
+        self.deep_camma.eval()
+        
     def get_activations(self, x_img, deep_camma, m):
         class_val = torch.empty(x_img.size(0), dtype=torch.float)
         activations = torch.zeros((x_img.size(0), 1))

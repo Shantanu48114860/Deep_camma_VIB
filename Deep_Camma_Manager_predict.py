@@ -31,8 +31,7 @@ class Deep_Camma_Manager_Predict:
 
         with torch.no_grad():
             x = x.to(self.device)
-            activation_tensor = torch.from_numpy(np.array(
-                self.get_activations(x, self.deep_camma, self.do_m)))
+            activation_tensor = self.get_activations(x, self.deep_camma, self.do_m)
             probs = F.softmax(activation_tensor, dim=1)
 
         return probs
@@ -45,7 +44,7 @@ class Deep_Camma_Manager_Predict:
 
     def get_activations(self, x_img, deep_camma, m):
         class_val = torch.empty(x_img.size(0), dtype=torch.float)
-        activations = torch.zeros((x_img.size(0), 1))
+        activations = torch.zeros((x_img.size(0), 1)).to(self.device)
         for y_c in range(10):
             class_val.fill_(y_c)
             # print(class_val.size())
@@ -57,15 +56,17 @@ class Deep_Camma_Manager_Predict:
             p_yc = torch.tensor(1000 / 10000)
             z_normal = MultivariateNormal(torch.zeros((z_mu.size(0), z_mu.size(1))),
                                           torch.eye(z_mu.size(1)))
-            log_p_z = z_normal.log_prob(z_normal.sample())
+            log_p_z = z_normal.log_prob(z_normal.sample()).to(self.device)
             p_z_proba = log_p_z.exp()
 
-            x_hat_flatten = x_hat.view(x_hat.size(0), -1).cpu()
-            x_img_flatten = x_img.view(x_img.size(0), -1).cpu()
-            # print(x_hat_flatten.size())
+            x_hat_flatten = x_hat.view(x_hat.size(0), -1).to(self.device)
+            x_img_flatten = x_img.view(x_img.size(0), -1).to(self.device)
+            # print(x_hat_flatten.device)
+            # print(x_img_flatten.device)
 
-            p_theta_normal = MultivariateNormal(x_hat_flatten, torch.eye(x_hat_flatten.size(1)))
-            log_p_theta = p_theta_normal.log_prob(x_img_flatten.cpu())
+            p_theta_normal = MultivariateNormal(x_hat_flatten,
+                                                torch.eye(x_hat_flatten.size(1)).to(self.device))
+            log_p_theta = p_theta_normal.log_prob(x_img_flatten.to(self.device))
             # print(log_p_theta.size())
             # print(log_p_theta[0])
             # print(log_p_theta.exp())
@@ -74,15 +75,15 @@ class Deep_Camma_Manager_Predict:
             # log_p_theta = p_theta_normal.log_prob(x_img_flatten.cpu())
             # p_theta_proba = torch.sum(log_p_theta.exp(), dim=1)
 
-            z_mu = z_mu.cpu()
-            z_log_var = z_log_var.exp().cpu()
-            latent_z = latent_z.cpu()
+            z_mu = z_mu.to(self.device)
+            z_log_var = z_log_var.exp().to(self.device)
+            latent_z = latent_z.to(self.device)
 
             # print(z_log_var.size())
             # print(z_mu.size())
 
             q_phi_normal = Normal(z_mu, z_log_var.exp())
-            log_q_phi = q_phi_normal.log_prob(latent_z.cpu())
+            log_q_phi = q_phi_normal.log_prob(latent_z.to(self.device))
             q_phi_proba = torch.sum(log_q_phi.exp(), dim=1)
 
             # print(q_phi_proba.size())
@@ -108,11 +109,14 @@ class Deep_Camma_Manager_Predict:
             activation_val = activation_val.reshape(activation_val.size(0), -1)
             activations = torch.cat((activations, activation_val), dim=1)
 
-        activation_tensor = torch.from_numpy(np.array(activations))
+        # print("\n")
+        # print(activations.size())
+
+        # activation_tensor = torch.from_numpy(np.array(activations))
         # print(activation_tensor.size())
         # print(activation_tensor)
-        activation_tensor = activation_tensor[:, 1:]
+        activation_tensor = activations[:, 1:]
         # print(activation_tensor.size())
-        # print(activation_tensor)
-        # print(x)
+        # print(activation_tensor[0])
+        # print(torch.sum(activation_tensor[0], dim=0))
         return activation_tensor

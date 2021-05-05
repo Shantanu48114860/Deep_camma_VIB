@@ -68,8 +68,8 @@ if __name__ == '__main__':
     #                                              deep_camma_generated_img_file_name_disentangle)
 
     # predict
-    # do_m_model_name = "Model/do_m_vertical_shift_0.25/deep_camma_do_m_27_04_2021_08_09_54_epochs_35.pth"
-    do_m_model_name = "Model/deep_camma_do_m_27_04_2021_22_23_32_epochs_15.pth"
+    do_m_model_name = "Model/do_m_vertical_shift_0.25/deep_camma_do_m_27_04_2021_08_09_54_epochs_35.pth"
+    # do_m_model_name = "Model/deep_camma_do_m_27_04_2021_22_23_32_epochs_15.pth"
     experiments.predict(hyper_parameters_MNIST, do_m_model_name)
 
     # classify using DNN

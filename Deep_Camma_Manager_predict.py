@@ -76,7 +76,7 @@ class Deep_Camma_Manager_Predict:
             # p_theta_proba = torch.sum(log_p_theta.exp(), dim=1)
 
             z_mu = z_mu.to(self.device)
-            z_log_var = z_log_var.exp().to(self.device)
+            z_log_var = z_log_var.to(self.device)
             latent_z = latent_z.to(self.device)
 
             # print(z_log_var.size())

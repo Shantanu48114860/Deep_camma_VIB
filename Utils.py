@@ -45,10 +45,6 @@ class Utils:
         return z_kl + m_kl
 
     @staticmethod
-    def get_num_correct(preds, labels):
-        return preds.argmax(dim=1).eq(labels).sum().item()
-
-    @staticmethod
     def reparametrize(mu, logvar):
         std = logvar.mul(0.5).exp_()
         eps = torch.empty_like(std).normal_()
